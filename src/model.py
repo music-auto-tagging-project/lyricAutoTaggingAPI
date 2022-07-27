@@ -8,9 +8,10 @@ import numpy as np
 from typing import List
 
 class LyricAutoTagModel:
-  def __init__(self,model,pos_list=["NN","NNG"],top_n=10,max_chunk_length=128,n_gram_range=(1,1)):
+  def __init__(self,model,pos_list=["NN","NNG"],top_n=10,sim_thresh=0.1,max_chunk_length=128,n_gram_range=(1,1)):
     self.model = model
     self.top_n = top_n
+    self.sim_thresh = sim_thresh
     self.max_chunk_length = max_chunk_length
     self.pos_list = pos_list
     self.n_gram_range = n_gram_range
@@ -29,7 +30,11 @@ class LyricAutoTagModel:
     distances = cosine_similarity(mean_doc_embedding[np.newaxis,:], candidate_embeddings).flatten()
     k = min(distances.shape[0],self.top_n)
     indices = distances.argsort()[:-k:-1]
-    keywords = [candidates[index] for index in indices]
+    keywords=[]
+    for index in indices:
+      if distances[index] < self.sim_thresh:
+        break
+      keywords.append(candidates[index])
 
     return keywords
 
