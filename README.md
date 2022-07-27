@@ -22,3 +22,7 @@ python api.py \
     --password "user password to login DB" \
     -- port(optional) "port number(default 5000)" \
 ```
+
+
+- operating api server in background : `python api.py ~~ %`
+- terminating api server in background : `sh terminate_api.sh`
