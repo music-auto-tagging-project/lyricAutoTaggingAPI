@@ -1,6 +1,6 @@
 import torch
 from src.model import KoSBERT,LyricAutoTagModel
-from src.utils import get_lyric_by_musicDB
+from src.utils import get_lyric_by_musicDB,save_tag_list_in_db
 from transformers import AutoModel,AutoTokenizer
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -37,7 +37,8 @@ if __name__ == "__main__":
     @app.route('/tag/<int:musicid>',methods=["GET"])
     def tag_extraction(musicid):
         lyric = get_lyric_by_musicDB(musicid,host,user,db,password)
-        keyword = auto_tag_model.get_keyword(lyric)
-        return jsonify({"tagList":keyword})
+        tag_list = auto_tag_model.get_keyword(lyric)
+        save_tag_list_in_db(tag_list,musicid,host,user,db,password)
+        return jsonify({"tagList":tag_list})
 
     app.run(host='0.0.0.0',port=args.port)
