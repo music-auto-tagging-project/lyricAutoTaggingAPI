@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from kiwipiepy import Kiwi
-from konlpy.tag import Mecab
 from src.utils import isInKorean
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -9,18 +8,18 @@ import numpy as np
 from typing import List
 
 class LyricAutoTagModel:
-  def __init__(self,model,pos_list=["NN","NNG"],top_n=10,max_chunk_length=128):
+  def __init__(self,model,pos_list=["NN","NNG"],top_n=10,max_chunk_length=128,n_gram_range=(1,1)):
     self.model = model
     self.top_n = top_n
     self.max_chunk_length = max_chunk_length
     self.pos_list = pos_list
+    self.n_gram_range = n_gram_range
 
-  
   def get_keyword(self,lyric):
     lyric_chunk = self.get_lyric_chunk(lyric)
     candidates = self.get_lyric_keyword_candidate(lyric)
 
-    doc_embedding = self.model.encode(lyric)
+    doc_embedding = self.model.encode(lyric_chunk)
     mean_doc_embedding = np.average(doc_embedding,axis=0)
     if not isinstance(candidates,List):
       candidates = candidates.tolist()
@@ -37,7 +36,7 @@ class LyricAutoTagModel:
   def get_lyric_chunk(self,lyric):
     kiwi = Kiwi()
     chunk_list=[]
-    assert lyric is None or len(lyric)<200 or not isInKorean(lyric),f"lyric is none or not korean. {lyric}"
+    assert lyric is not None and len(lyric)>=150 and isInKorean(lyric),f"lyric is none or not korean. {lyric}"
 
     chunk=""
     for sen in kiwi.split_into_sents(lyric):
@@ -51,9 +50,12 @@ class LyricAutoTagModel:
   def get_lyric_keyword_candidate(self,lyric):
     assert lyric is not None and len(lyric)>=200 and isInKorean(lyric),f"lyric is none or not korean. {lyric}"
 
-    mecab = Mecab()
+    kiwi = Kiwi()
     lyric_pos_list = []
-    for word,pos in mecab.pos(lyric):
+    for tokenized in kiwi.tokenize(lyric):
+      word = tokenized.form
+      pos = tokenized.tag
+      
       if len(word)<=1:
         continue
       for target_pos in self.pos_list:
