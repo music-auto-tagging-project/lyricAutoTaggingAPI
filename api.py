@@ -5,7 +5,6 @@ from transformers import AutoModel,AutoTokenizer
 from flask import Flask, jsonify
 from flask_cors import CORS
 import argparse
-import pymysql
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -17,12 +16,20 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+app = Flask (__name__)
+CORS(app)
+
+@app.route('/tag/<int:musicid>',methods=["GET"])
+def tag_extraction(musicid):
+    lyric = get_lyric_by_musicDB(musicid,host,user,db,password)
+    tag_list = auto_tag_model.get_keyword(lyric)
+    save_tag_list_in_db(tag_list,musicid,host,user,db,password)
+    return jsonify({"tagList":tag_list})
+
 if __name__ == "__main__":
     args = parse_args()
 
     host,user,db,password = args.host, args.user, args.db, args.password
-    assert pymysql.connect(host=host,user=user,db=db,password=password,charset='utf8'),"can't access to db."
-    print("DB connect is success!!")
 
     model = KoSBERT(
         AutoModel.from_pretrained('sentence-transformers/xlm-r-100langs-bert-base-nli-stsb-mean-tokens'),
@@ -30,15 +37,5 @@ if __name__ == "__main__":
         torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     )
     auto_tag_model = LyricAutoTagModel(model)
-
-    app = Flask (__name__)
-    CORS(app)
-
-    @app.route('/tag/<int:musicid>',methods=["GET"])
-    def tag_extraction(musicid):
-        lyric = get_lyric_by_musicDB(musicid,host,user,db,password)
-        tag_list = auto_tag_model.get_keyword(lyric)
-        save_tag_list_in_db(tag_list,musicid,host,user,db,password)
-        return jsonify({"tagList":tag_list})
 
     app.run(host='0.0.0.0',port=args.port)
