@@ -20,6 +20,9 @@ def save_tag_list_in_db(tag_list,musicid,host,user,db,password):
     db = pymysql.connect(host=host,user=user,db=db,password=password,charset='utf8',client_flag=CLIENT.MULTI_STATEMENTS)
     with db:
         with db.cursor() as cursor:
+            delete_prev_tag_sql = """DELETE FROM tag_has_music WHERE music_id=%s"""
+            cursor.execute(delete_prev_tag_sql,(musicid))
+            
             tag_has_music_insert_sql = """INSERT INTO tag_has_music(tag_id,music_id,tag_rank)
                                                 VALUES((SELECT id FROM tag WHERE name=%s),%s,%s)"""
             tag_insert_sql = """INSERT INTO tag(name) VALUES(%s)"""
