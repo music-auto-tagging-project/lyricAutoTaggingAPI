@@ -1,2 +1,4 @@
-id=`ps -ef | grep api.py | grep python | cut -d \t -f 2 | sed 's/^ *//' | cut -d ' ' -f 5`
-`kill -9 $id`
+proc=$(ps -ef | grep "[p]ython3 auto_tag_api.py")
+pid=$(echo ${proc} | cut -d " " -f2)
+echo pid : ${pid}
+`kill -9 ${pid}`
