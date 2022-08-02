@@ -1,20 +1,27 @@
 import torch
 import torch.nn as nn
-from kiwipiepy import Kiwi
-from src.utils import isInKorean
+from src.utils import isInKorean,eng_sent_tokenize
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from typing import List
+from kiwipiepy import Kiwi
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.tag import pos_tag
+nltk.download('averaged_perceptron_tagger')
+nltk.download('punkt')
 
 class LyricAutoTagModel:
-  def __init__(self,model,pos_list=["NN","NNG"],top_n=10,sim_thresh=0.1,max_chunk_length=128,n_gram_range=(1,1)):
+  def __init__(self,model,kor_pos_list=["NN","NNG"],eng_pos_list= ["NN","NNP","NNS","NNPS"],top_n=10,sim_thresh=0.12,max_chunk_length=128,n_gram_range=(1,1)):
     self.model = model
     self.top_n = top_n
     self.sim_thresh = sim_thresh
     self.max_chunk_length = max_chunk_length
-    self.pos_list = pos_list
+    self.kor_pos_list = kor_pos_list
+    self.eng_pos_list = eng_pos_list
     self.n_gram_range = n_gram_range
+    self.lyric_tokenizer = LyricTokenizer()
 
   def get_keyword(self,lyric):
     lyric_chunk = self.get_lyric_chunk(lyric)
@@ -34,39 +41,52 @@ class LyricAutoTagModel:
     for index in indices:
       if distances[index] < self.sim_thresh:
         break
-      keywords.append(candidates[index])
+      if isInKorean(candidates[index]) and len(candidates[index]) >1 and len(candidates[index]) < 5:
+        keywords.append(candidates[index])
+      elif not isInKorean(candidates[index]) and len(candidates[index]) >4 and len(candidates[index]) <13:
+        keywords.append(candidates[index])
 
     return keywords
 
   def get_lyric_chunk(self,lyric):
-    kiwi = Kiwi()
     chunk_list=[]
-    assert lyric is not None and len(lyric)>=150 and isInKorean(lyric),f"lyric is none or not korean. {lyric}"
+
+    if isInKorean(lyric):
+      sentences = self.lyric_tokenizer.split_kor_sentence(lyric)
+    else:
+      sentences = self.lyric_tokenizer.split_eng_sentence(lyric)
 
     chunk=""
-    for sen in kiwi.split_into_sents(lyric):
+    for sen in sentences:
       if len(chunk) + len(sen) < self.max_chunk_length:
-        chunk += (" " + sen.text.replace("\n"," "))
+        chunk += (" " + sen.replace("\n"," "))
       else:
         chunk_list.append(chunk.strip())
         chunk=""
     return chunk_list
 
   def get_lyric_keyword_candidate(self,lyric):
-    assert lyric is not None and len(lyric)>=200 and isInKorean(lyric),f"lyric is none or not korean. {lyric}"
-
-    kiwi = Kiwi()
     lyric_pos_list = []
-    for tokenized in kiwi.tokenize(lyric):
-      word = tokenized.form
-      pos = tokenized.tag
-      
-      if len(word)<=1:
-        continue
-      for target_pos in self.pos_list:
-        if pos in target_pos:
-          lyric_pos_list.append(word)
-          break
+
+    if isInKorean(lyric):
+      word_pos_list = self.lyric_tokenizer.get_kor_pos(lyric)
+      for word,pos in word_pos_list:
+        if len(word)<=1 and len(word)>=5:
+          continue
+        for target_pos in self.kor_pos_list:
+          if pos in target_pos:
+            lyric_pos_list.append(word)
+            break
+    else:
+      word_pos_list = self.lyric_tokenizer.get_eng_pos(lyric)
+      for word,pos in word_pos_list:
+        if len(word)<=4 and len(word)>=13:
+          continue
+        for target_pos in self.eng_pos_list:
+          if pos in target_pos:
+            lyric_pos_list.append(word)
+            break
+    
     lyric_doc = ' '.join(lyric_pos_list)
     
     assert lyric_doc is not None,f"lyric doc is empty."
@@ -103,3 +123,22 @@ class KoSBERT(nn.Module):
       token_embeddings = model_output[0] #First element of model_output contains all token embeddings
       input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
       return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+
+class LyricTokenizer:
+  def __init__(self):
+    self.kiwi = Kiwi()
+
+  def get_kor_pos(self,lyric):    
+    return [(posed.form,posed.tag) for posed in self.kiwi.tokenize(lyric)]
+
+  def get_eng_pos(self,lyric):
+    pos_list=[]
+    for sent in eng_sent_tokenize(lyric):
+      pos_list.extend(pos_tag(word_tokenize(sent)))
+    return pos_list
+
+  def split_kor_sentence(self,lyric):
+    return [sent.text for sent in self.kiwi.split_into_sents(lyric)]
+
+  def split_eng_sentence(self,lyric):
+    return eng_sent_tokenize(lyric) 
