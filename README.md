@@ -11,18 +11,13 @@ flask
 
 `pip install -r requirements.txt`
 
-## api.py
-Because this api server accesses DB server, **should give some information to login DB.**
-
+## auto_tag_api.py
 ```
 python api.py \
-    --host "db server endpoint" \
-    --user "user id to login DB" \
-    --db "DB name to be accessed" \
-    --password "user password to login DB" \
-    -- port(optional) "port number(default 5000)" \
+    -- treshhold "keyword should be upper then this threshold."
+    -- top_n "maximum keyword number"
+    -- port "port number(default 5000)" \
 ```
-
 
 - operating api server in background : `python api.py ~~ %`
 - terminating api server in background : `sh terminate_api.sh`
