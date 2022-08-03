@@ -7,25 +7,25 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from typing import List
-from kiwipiepy import Kiwi
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.tag import pos_tag
-nltk.download('averaged_perceptron_tagger')
-nltk.download('punkt')
 
 class LyricAutoTagModel(BaseAutoTag):
-  def __init__(self,model,kor_pos_list=["NN","NNG"],eng_pos_list= ["NN","NNP","NNS","NNPS"],top_n=10,sim_thresh=0.12,max_chunk_length=128,n_gram_range=(1,1)):
+  def __init__(self,model,translator,
+              target_pos_list=["NN","NNG"],
+              tokenizer='kiwi',
+              top_n=10,sim_thresh=0.12,max_chunk_length=128,n_gram_range=(1,1)):
     self.model = model
+    self.translator = translator
     self.top_n = top_n
     self.sim_thresh = sim_thresh
     self.max_chunk_length = max_chunk_length
-    self.kor_pos_list = kor_pos_list
-    self.eng_pos_list = eng_pos_list
+    self.target_pos_list = target_pos_list
     self.n_gram_range = n_gram_range
-    self.lyric_tokenizer = LyricTokenizer()
+    self.lyric_tokenizer = LyricTokenizer(name=tokenizer).tokenizer
 
   def get_keyword(self,lyric):
+    if not isInKorean(lyric):
+      lyric = self.translator.translate(lyric,target_language="ko")['translatedText']
+
     lyric_chunk = self.get_lyric_chunk(lyric)
     candidates = self.get_lyric_keyword_candidate(lyric)
 
@@ -43,20 +43,14 @@ class LyricAutoTagModel(BaseAutoTag):
     for index in indices:
       if distances[index] < self.sim_thresh:
         break
-      if isInKorean(candidates[index]) and len(candidates[index]) >1 and len(candidates[index]) < 5:
-        keywords.append(candidates[index])
-      elif not isInKorean(candidates[index]) and len(candidates[index]) >4 and len(candidates[index]) <13:
+      if len(candidates[index]) >1 and len(candidates[index]) < 5:
         keywords.append(candidates[index])
 
     return keywords
 
   def get_lyric_chunk(self,lyric):
     chunk_list=[]
-
-    if isInKorean(lyric):
-      sentences = self.lyric_tokenizer.split_kor_sentence(lyric)
-    else:
-      sentences = self.lyric_tokenizer.split_eng_sentence(lyric)
+    sentences = self.lyric_tokenizer.split_sentence(lyric)
 
     chunk=""
     for sen in sentences:
@@ -70,24 +64,14 @@ class LyricAutoTagModel(BaseAutoTag):
   def get_lyric_keyword_candidate(self,lyric):
     lyric_pos_list = []
 
-    if isInKorean(lyric):
-      word_pos_list = self.lyric_tokenizer.get_kor_pos(lyric)
-      for word,pos in word_pos_list:
-        if len(word)<=1 and len(word)>=5:
-          continue
-        for target_pos in self.kor_pos_list:
-          if pos in target_pos:
-            lyric_pos_list.append(word)
-            break
-    else:
-      word_pos_list = self.lyric_tokenizer.get_eng_pos(lyric)
-      for word,pos in word_pos_list:
-        if len(word)<=4 and len(word)>=13:
-          continue
-        for target_pos in self.eng_pos_list:
-          if pos in target_pos:
-            lyric_pos_list.append(word)
-            break
+    word_pos_list = self.lyric_tokenizer.tokenize(lyric)
+    for word,pos in word_pos_list:
+      if len(word)<=1 and len(word)>=5:
+        continue
+      for target_pos in self.target_pos_list:
+        if pos in target_pos:
+          lyric_pos_list.append(word)
+          break
     
     lyric_doc = ' '.join(lyric_pos_list)
     
