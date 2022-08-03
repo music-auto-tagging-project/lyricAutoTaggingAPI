@@ -1,5 +1,5 @@
 import torch
-from src.model import KoSBERT,LyricAutoTagModel
+from src.autoTagModel.lyricAutoTag import KoSBERT,LyricAutoTagModel
 from transformers import AutoModel,AutoTokenizer
 from flask import Flask, jsonify,request
 from flask_cors import CORS
