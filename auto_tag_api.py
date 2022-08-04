@@ -3,7 +3,6 @@ from src.autoTagModel.lyricAutoTag import KoSBERT,LyricAutoTagModel
 from transformers import AutoModel,AutoTokenizer
 from flask import Flask, jsonify,request
 from flask_cors import CORS
-from google.cloud import translate_v2 as translate
 import argparse
 
 def parse_args():
@@ -31,6 +30,6 @@ if __name__ == "__main__":
         AutoTokenizer.from_pretrained('sentence-transformers/xlm-r-100langs-bert-base-nli-stsb-mean-tokens'),
         torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     )
-    auto_tag_model = LyricAutoTagModel(model,translator=translate.Client(),top_n=args.top_n,sim_thresh=args.thresh)
+    auto_tag_model = LyricAutoTagModel(model,top_n=args.top_n,sim_thresh=args.thresh)
 
     app.run(host='0.0.0.0',port=args.port)

@@ -1,6 +1,10 @@
 transformers==4.20.1
 kiwipiepy==0.13.1
-pymysql==1.0.2
 google-cloud-translate
+requests
 flask
-nltk
+flask_cors
+tqdm
+numpy
+sklearn
+torch==1.10.0

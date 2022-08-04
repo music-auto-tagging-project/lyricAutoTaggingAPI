@@ -2,19 +2,18 @@ from src.autoTagModel.base import BaseAutoTag
 from src.tokenizer.tokenizer import LyricTokenizer
 import torch
 import torch.nn as nn
-from src.utils import isInKorean,eng_sent_tokenize
+from src.utils import isInKorean
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from typing import List
 
 class LyricAutoTagModel(BaseAutoTag):
-  def __init__(self,model,translator,
+  def __init__(self,model,
               target_pos_list=["NN","NNG"],
               tokenizer='kiwi',
               top_n=10,sim_thresh=0.12,max_chunk_length=128,n_gram_range=(1,1)):
     self.model = model
-    self.translator = translator
     self.top_n = top_n
     self.sim_thresh = sim_thresh
     self.max_chunk_length = max_chunk_length
@@ -23,8 +22,7 @@ class LyricAutoTagModel(BaseAutoTag):
     self.lyric_tokenizer = LyricTokenizer(name=tokenizer).tokenizer
 
   def get_keyword(self,lyric):
-    if not isInKorean(lyric):
-      lyric = self.translator.translate(lyric,target_language="ko")['translatedText']
+    assert isInKorean(lyric),"The lyric should include Korean."
 
     lyric_chunk = self.get_lyric_chunk(lyric)
     candidates = self.get_lyric_keyword_candidate(lyric)
