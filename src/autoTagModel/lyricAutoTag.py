@@ -5,15 +5,20 @@ import torch.nn as nn
 from src.utils import isInKorean
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from transformers import AutoModel,AutoTokenizer
 import numpy as np
 from typing import List
 
 class LyricAutoTagModel(BaseAutoTag):
-  def __init__(self,model,
+  def __init__(self,
+              model_name='sentence-transformers/xlm-r-100langs-bert-base-nli-stsb-mean-tokens',
               target_pos_list=["NN","NNG"],
               tokenizer='kiwi',
               top_n=10,sim_thresh=0.12,max_chunk_length=128,n_gram_range=(1,1)):
-    self.model = model
+    self.model = KoSBERT(
+            AutoModel.from_pretrained(model_name),
+            AutoTokenizer.from_pretrained(model_name),
+            torch.device("cuda" if torch.cuda.is_available() else 'cpu'))
     self.top_n = top_n
     self.sim_thresh = sim_thresh
     self.max_chunk_length = max_chunk_length
