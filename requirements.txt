@@ -8,3 +8,4 @@ tqdm
 numpy
 sklearn
 torch==1.10.0
+pytest==6.2.5
