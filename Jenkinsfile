@@ -5,7 +5,7 @@ pipeline{
         REGION = "ap-northeast-2"
         ECR_PATH = "595017219040.dkr.ecr.ap-northeast-2.amazonaws.com"
         ECR_IMAGE = "lyric-auto-tag-api-server"
-        AWS_CREDENTIAL_ID = "jenkins-aws-moon-credentials"
+        AWS_CREDENTIAL_ID = "aws-moon-credentials"
     }
 
     stages{
