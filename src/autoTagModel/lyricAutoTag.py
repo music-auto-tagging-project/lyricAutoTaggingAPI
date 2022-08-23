@@ -43,13 +43,24 @@ class LyricAutoTagModel(BaseAutoTag):
     k = min(distances.shape[0],self.top_n)
     indices = distances.argsort()[:-k:-1]
     keywords=[]
+    keyword_embs=[]
+    keyword_sims=[]
     for index in indices:
       if distances[index] < self.sim_thresh:
         break
       if len(candidates[index]) >1 and len(candidates[index]) < 5:
         keywords.append(candidates[index])
+        keyword_embs.append(candidate_embeddings[index].tolist())
+        keyword_sims.append(distances[index].item())
 
-    return keywords
+    results={
+      "lyric_emb":mean_doc_embedding.tolist(),
+      "keywords":keywords,
+      "keyword_embs":keyword_embs,
+      "keyword_sims":keyword_sims
+    }
+
+    return results
 
   def get_lyric_chunk(self,lyric):
     chunk_list=[]
