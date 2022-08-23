@@ -19,8 +19,8 @@ CORS(app)
 @app.route('/music/tag/extraction',methods=["POST"])
 def tag_extraction():
     lyric = request.get_json()['musicLyric']
-    tag_list = auto_tag_model.get_keyword(lyric)
-    return jsonify({"tagList":tag_list})
+    result = auto_tag_model.get_keyword(lyric)
+    return jsonify(result)
 
 if __name__ == "__main__":
     args = parse_args()
