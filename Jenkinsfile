@@ -24,14 +24,14 @@ pipeline{
             }
         }
 
-        stage("TEST"){
-            steps{
-                script{
-                    docker.image("${ECR_PATH}/${ECR_IMAGE}").inside{
-                        sh """python3 -m pytest tests"""}
-                }
-            }
-        }
+        // stage("TEST"){
+        //     steps{
+        //         script{
+        //             docker.image("${ECR_PATH}/${ECR_IMAGE}").inside{
+        //                 sh """python3 -m pytest tests"""}
+        //         }
+        //     }
+        // }
 
         stage("IMAGE PUSH"){
             steps{
