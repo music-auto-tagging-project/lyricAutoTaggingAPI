@@ -1,20 +1,23 @@
-from src.autoTagModel.base import BaseAutoTag
-from src.tokenizer.tokenizer import LyricTokenizer
+from typing import List
+
 import torch
 import torch.nn as nn
-from src.utils import isInKorean
+import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel,AutoTokenizer
-import numpy as np
-from typing import List
+
+from src.utils import isInKorean,softmax
+from src.autoTagModel.base import BaseAutoTag
+from src.tokenizer.tokenizer import LyricTokenizer
 
 class LyricAutoTagModel(BaseAutoTag):
   def __init__(self,
               model_name='sentence-transformers/xlm-r-100langs-bert-base-nli-stsb-mean-tokens',
               target_pos_list=["NN","NNG"],
+              general_label_list = ["따뜻한","차가운","슬픈","밝은","신나는","우울한"],
               tokenizer='kiwi',
-              top_n=10,sim_thresh=0.12,max_chunk_length=128,n_gram_range=(1,1)):
+              top_n=5,sim_thresh=0.12,max_chunk_length=128,n_gram_range=(1,1)):
     self.model = KoSBERT(
             AutoModel.from_pretrained(model_name),
             AutoTokenizer.from_pretrained(model_name),
@@ -25,6 +28,9 @@ class LyricAutoTagModel(BaseAutoTag):
     self.target_pos_list = target_pos_list
     self.n_gram_range = n_gram_range
     self.lyric_tokenizer = LyricTokenizer(name=tokenizer).tokenizer
+    self.general_label_list = general_label_list = np.array(general_label_list)
+
+    self.general_label_embeddings = self.model.encode(general_label_list.tolist())
 
   def get_keyword(self,lyric):
     assert isInKorean(lyric),"The lyric should include Korean."
@@ -42,6 +48,7 @@ class LyricAutoTagModel(BaseAutoTag):
     distances = cosine_similarity(mean_doc_embedding[np.newaxis,:], candidate_embeddings).flatten()
     k = min(distances.shape[0],self.top_n)
     indices = distances.argsort()[:-k:-1]
+
     keywords=[]
     keyword_embs=[]
     keyword_sims=[]
@@ -53,9 +60,17 @@ class LyricAutoTagModel(BaseAutoTag):
         keyword_embs.append(candidate_embeddings[index].tolist())
         keyword_sims.append(distances[index].item())
 
+    sim_weights = softmax(distances.flatten())
+    mood_embedding = np.stack(candidate_embeddings,axis=0)
+    mood_embedding = np.average(mood_embedding,axis=0,weights=sim_weights)
+
+    general_label_sim = cosine_similarity(mood_embedding.reshape(1,-1),self.general_label_embeddings)
+    mood_keywords = self.general_label_list[np.flip(np.argsort(general_label_sim))].tolist()
+
     results={
       "lyric_emb":mean_doc_embedding.tolist(),
       "keywords":keywords,
+      "mood_keywords":mood_keywords,
       "keyword_embs":keyword_embs,
       "keyword_sims":keyword_sims
     }
