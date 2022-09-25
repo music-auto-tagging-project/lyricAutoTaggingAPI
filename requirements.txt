@@ -1,6 +1,6 @@
 transformers==4.20.1
 kiwipiepy==0.13.1
-google-cloud-translate
+kiwipiepy-model==0.13.0
 requests
 flask
 flask_cors
