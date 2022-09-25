@@ -8,7 +8,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port',type=int,default=5000,help='port number to access from middleware or front')
     parser.add_argument('--thresh',type=float,default=0.12,help='threshold for keyword')
-    parser.add_argument('--top_n',type=int,default=10,help='top-n for keyword')
+    parser.add_argument('--top_n',type=int,default=5,help='top-n for keyword')
     parser.add_argument("--model_name",type=str,default='sentence-transformers/xlm-r-100langs-bert-base-nli-stsb-mean-tokens')
     args = parser.parse_args()
     return args
