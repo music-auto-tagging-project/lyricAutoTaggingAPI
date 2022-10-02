@@ -17,7 +17,7 @@ class LyricAutoTagModel(BaseAutoTag):
               target_pos_list=["NN","NNG"],
               general_label_list = ["따뜻한","차가운","슬픈","밝은","신나는","우울한"],
               tokenizer='kiwi',
-              top_n=5,sim_thresh=0.12,max_chunk_length=128,n_gram_range=(1,1)):
+              top_n=5,sim_thresh=0.12,max_chunk_length=256,n_gram_range=(1,1)):
     self.model = KoSBERT(
             AutoModel.from_pretrained(model_name),
             AutoTokenizer.from_pretrained(model_name),
@@ -81,13 +81,24 @@ class LyricAutoTagModel(BaseAutoTag):
     chunk_list=[]
     sentences = self.lyric_tokenizer.split_sentence(lyric)
 
-    chunk=""
+    is_first = True
+    chunk = ""
     for sen in sentences:
+      if is_first:
+        chunk = sen.replace("\n"," ")
+        is_first = False
+        continue
+
       if len(chunk) + len(sen) < self.max_chunk_length:
         chunk += (" " + sen.replace("\n"," "))
       else:
         chunk_list.append(chunk.strip())
         chunk=""
+        is_first = True
+    
+    if chunk:
+      chunk_list.append(chunk.strip())
+
     return chunk_list
 
   def get_lyric_keyword_candidate(self,lyric):
