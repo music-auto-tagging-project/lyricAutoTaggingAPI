@@ -72,6 +72,7 @@ class LyricAutoTagModel(BaseAutoTag):
       "lyric_emb":mean_doc_embedding.tolist(),
       "keywords":keywords,
       "mood_keywords":mood_keywords,
+      "mood_embedding":mood_embedding.tolist(),
       "keyword_embs":keyword_embs,
       "keyword_sims":keyword_sims
     }
